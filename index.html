@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskRain BD - Earn Online</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src='//libtl.com/sdk.js' data-zone='10981207' data-sdk='show_10981207'></script>
+    
+    <style>
+        :root { --primary: #1c2a35; --card: #243447; --accent: #ffd700; --blue: #0088cc; }
+        body { font-family: 'Arial', sans-serif; background: var(--primary); color: white; margin: 0; padding: 15px; text-align: center; }
+        .card { background: var(--card); border-radius: 15px; padding: 20px; margin-bottom: 15px; border: 1px solid #34495e; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .balance { font-size: 36px; color: var(--accent); font-weight: bold; margin: 10px 0; }
+        .btn { background: var(--blue); border: none; color: white; padding: 15px; border-radius: 12px; cursor: pointer; font-weight: bold; width: 100%; font-size: 16px; transition: 0.3s; }
+        .btn:active { transform: scale(0.95); }
+        
+        /* লিডারবোর্ড স্টাইল */
+        .leaderboard-list { text-align: left; margin-top: 10px; }
+        .leader-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #34495e; font-size: 14px; }
+        .leader-item:last-child { border: none; }
+        .rank { color: var(--accent); font-weight: bold; margin-right: 10px; }
+
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #34495e; background: #1c2a35; color: white; box-sizing: border-box; }
+        #loading-ad { display: none; color: var(--accent); margin-top: 10px; font-weight: bold; }
+        .footer-links { display: flex; justify-content: space-around; font-size: 12px; margin-top: 20px; }
+        .footer-links a { color: #00aaff; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2 style="margin:0;">TaskRain BD</h2>
+        <p id="user-info" style="font-size: 12px; color: #aaa;">ইউজার আইডি লোড হচ্ছে...</p>
+        <div class="balance">৳ <span id="balance">0.00</span></div>
+        <div style="display: flex; justify-content: space-between; font-size: 13px;">
+            <span>মোট অ্যাড: <b id="ad-count">0</b></span>
+            <span>রেফার: <b id="ref-count">0</b></span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>💰 আনলিমিটেড অ্যাড ইনকাম</h3>
+        <p style="font-size: 12px;">প্রতি বিজ্ঞাপনে ৫.০০ টাকা আয় করুন</p>
+        
+        <div id="show_10981207" style="min-height: 100px; background: #1a252f; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;">
+            <small style="color: #555;">বিজ্ঞাপন এখানে লোড হবে</small>
+        </div>
+
+        <button class="btn" onclick="startAdProcess()">বিজ্ঞাপন দেখুন</button>
+        <div id="loading-ad">বিজ্ঞাপন যাচাই করা হচ্ছে... (৫ সেকেন্ড)</div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top: 0; color: var(--accent);">🏆 সেরা ১০ উপার্জনকারী (Live)</h3>
+        <div class="leaderboard-list" id="leaderboard">
+            </div>
+    </div>
+
+    <div class="card">
+        <h3>💸 টাকা উত্তোলন</h3>
+        <select id="method">
+            <option value="Bkash">বিকাশ (Bkash)</option>
+            <option value="Nagad">নগদ (Nagad)</option>
+            <option value="Rocket">রকেট (Rocket)</option>
+        </select>
+        <input type="number" id="phone" placeholder="আপনার একাউন্ট নম্বর">
+        <button class="btn" style="background: #27ae60;" onclick="sendWithdraw()">উত্তোলন রিকোয়েস্ট</button>
+    </div>
+
+    <div class="footer-links">
+        <a href="https://t.me/Online_Free_Income_95">চ্যানেল</a>
+        <a href="https://www.youtube.com/@Online_Fre_Income_95">ইউটিউব</a>
+        <a href="https://t.me/Online_Free_Income_09">হেল্প সেন্টার</a>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        const BOT_TOKEN = '8790752659:AAFW56dhcqMjoPgXQTiBKuPyHnjsjot33_E';
+        const ADMIN_ID = '8598824562';
+
+        let bal = parseFloat(localStorage.getItem('tr_bal')) || 0;
+        let ads = parseInt(localStorage.getItem('tr_ads')) || 0;
+
+        function updateUI() {
+            document.getElementById('balance').innerText = bal.toFixed(2);
+            document.getElementById('ad-count').innerText = ads;
+            localStorage.setItem('tr_bal', bal);
+            localStorage.setItem('tr_ads', ads);
+            renderLeaderboard();
+        }
+
+        // ইউজার ডাটা সেটআপ
+        const user = tg.initDataUnsafe.user || { first_name: "Guest", id: "12345" };
+        document.getElementById('user-info').innerText = `${user.first_name} (ID: ${user.id})`;
+
+        // অ্যাড ফাংশন
+        function startAdProcess() {
+            // SDK এর মাধ্যমে অ্যাড দেখানো (যদি সাপোর্ট করে)
+            if (typeof show_10981207 === 'function') { show_10981207(); }
+            
+            document.getElementById('loading-ad').style.display = 'block';
+            setTimeout(() => {
+                bal += 5;
+                ads += 1;
+                updateUI();
+                document.getElementById('loading-ad').style.display = 'none';
+                tg.showAlert("✅ ৫.০০ টাকা আপনার একাউন্টে যোগ হয়েছে!");
+            }, 5000);
+        }
+
+        // লিডারবোর্ড জেনারেটর (ডামি ডাটা + বর্তমান ইউজার)
+        function renderLeaderboard() {
+            const leaders = [
+                { name: "Sujon Ahmed", earn: 4500 },
+                { name: "Rohim Ali", earn: 3200 },
+                { name: "Sabbir Khan", earn: 2800 },
+                { name: "Your Account", earn: bal },
+                { name: "Mitu Akter", earn: 1200 },
+                { name: "Rakib 09", earn: 950 }
+            ].sort((a, b) => b.earn - a.earn);
+
+            let html = '';
+            leaders.forEach((l, index) => {
+                html += `<div class="leader-item">
+                    <span><span class="rank">#${index+1}</span> ${l.name}</span>
+                    <span style="color:#27ae60">৳${l.earn.toFixed(2)}</span>
+                </div>`;
+            });
+            document.getElementById('leaderboard').innerHTML = html;
+        }
+
+        // উইথড্র সিস্টেম
+        async function sendWithdraw() {
+            const method = document.getElementById('method').value;
+            const phone = document.getElementById('phone').value;
+
+            if (bal < 1500) { return tg.showAlert("⚠️ উত্তোলনের জন্য ১৫০০ টাকা প্রয়োজন!"); }
+            if (phone.length < 11) { return tg.showAlert("⚠️ সঠিক নম্বর দিন!"); }
+
+            const msg = `💰 **উইথড্র রিকোয়েস্ট!**\n\n👤 ইউজার: ${user.first_name}\n🆔 আইডি: ${user.id}\n📱 মেথড: ${method}\n📞 নম্বর: ${phone}\n💵 পরিমাণ: ${bal} BDT`;
+
+            const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: ADMIN_ID, text: msg, parse_mode: 'Markdown' })
+            });
+
+            if (res.ok) {
+                tg.showAlert("✅ রিকোয়েস্ট পাঠানো হয়েছে!");
+                bal = 0; updateUI();
+            }
+        }
+
+        tg.expand();
+        updateUI();
+    </script>
+</body>
+</html>
